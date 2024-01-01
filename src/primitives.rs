@@ -7,4 +7,8 @@ impl Centimeter {
     pub(crate) fn new(centimeter: u8) -> Self {
         Self(centimeter)
     }
+
+    pub(crate) fn into_inner(self) -> u8 {
+        self.0
+    }
 }

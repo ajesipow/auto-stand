@@ -116,12 +116,14 @@ impl DistanceSensor for HCSR04 {
         let echo_duration = self.measure_full_echo_duration()?;
         // We're interpolating the height from our calibration parameters
         let normalized_echo = (echo_duration - self.calibration_data.min_height_echo).as_micros()
+            as f32
             / (self.calibration_data.max_height_echo - self.calibration_data.min_height_echo)
-                .as_micros();
-        Ok(
-            normalized_echo * (self.calibration_data.max_height - self.calibration_data.min_height)
-                + self.calibration_data.min_height,
-        )
+                .as_micros() as f32;
+        let height = normalized_echo
+            * (self.calibration_data.max_height.into_inner()
+                - self.calibration_data.min_height.into_inner()) as f32
+            + self.calibration_data.min_height.into_inner() as f32;
+        Ok(Centimeter::new(height.round() as u8))
     }
 
     fn set_min_height(

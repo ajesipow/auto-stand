@@ -15,7 +15,7 @@ pub(crate) trait Movement {
 
     /// Moves to a specific height in centimeters.
     fn move_to_height(
-        &self,
+        &mut self,
         height_cm: Centimeter,
     ) -> Result<()>;
 }

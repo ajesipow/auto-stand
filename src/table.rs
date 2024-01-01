@@ -62,7 +62,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             current_height = self.sensor.get_current_height()?;
         }
         self.motor.stop();
-        self.sensor.set_max_height(self.max_height);
+        self.sensor.set_max_height(self.max_height)?;
 
         self.motor.down();
         let mut current_height = self.sensor.get_current_height()?;
@@ -76,7 +76,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             current_height = self.sensor.get_current_height()?;
         }
         self.motor.stop();
-        self.sensor.set_min_height(self.min_height);
+        self.sensor.set_min_height(self.min_height)?;
 
         // TODO save calibration data to file
 
