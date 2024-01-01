@@ -29,19 +29,14 @@ impl DeskMotor {
     /// Panics if the configured pins for driving the motor up or down are the same or if they
     /// cannot be initialised.
     pub(crate) fn new() -> Self {
-        let pin_up = PIN_UP;
-        let pin_down = PIN_DOWN;
-        if pin_up == pin_down {
-            panic!("motor pin up and down cannot be the same")
-        }
         let gpio = Gpio::new().expect("gpio to be available");
         let pin_up = gpio
-            .get(pin_up)
-            .expect(&format!("pin up {} be available", pin_up))
+            .get(PIN_UP)
+            .expect("pin up to be available")
             .into_output();
         let pin_down = gpio
-            .get(pin_down)
-            .expect(&format!("pin down {} be available", pin_down))
+            .get(PIN_DOWN)
+            .expect("pin down to be available")
             .into_output();
         Self { pin_up, pin_down }
     }

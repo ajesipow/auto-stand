@@ -9,7 +9,7 @@ use crate::motor::Motor;
 use crate::movement::Movement;
 use crate::primitives::Centimeter;
 use crate::sensor::DistanceSensor;
-use crate::sensor::Sensor;
+use crate::sensor::HCSR04;
 
 // TODO make configurable
 static MAX_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter::new(150));
@@ -19,7 +19,7 @@ static MIN_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter::new(40));
 
 /// The standing desk implementation.
 #[derive(Debug)]
-pub(crate) struct StandingDesk<S: Sensor = DistanceSensor, M: Motor = DeskMotor> {
+pub(crate) struct StandingDesk<S: DistanceSensor = HCSR04, M: Motor = DeskMotor> {
     max_height: Centimeter,
     min_height: Centimeter,
     sensor: S,
@@ -29,7 +29,7 @@ pub(crate) struct StandingDesk<S: Sensor = DistanceSensor, M: Motor = DeskMotor>
 impl StandingDesk {
     /// Creates a new instance of a standing desk.
     pub fn new() -> Self {
-        let sensor = DistanceSensor::new();
+        let sensor = HCSR04::new();
         let motor = DeskMotor::new();
         Self {
             max_height: *MAX_HEIGHT,
@@ -40,7 +40,7 @@ impl StandingDesk {
     }
 }
 
-impl<S: Sensor, M: Motor> Movement for StandingDesk<S, M> {
+impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
     fn move_to_standing(&mut self) -> Result<()> {
         self.move_to_height(*STANDING_HEIGHT)
     }
@@ -77,6 +77,8 @@ impl<S: Sensor, M: Motor> Movement for StandingDesk<S, M> {
         }
         self.motor.stop();
         self.sensor.set_min_height(self.min_height);
+
+        // TODO save calibration data to file
 
         self.move_to_sitting()
     }
