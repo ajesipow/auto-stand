@@ -28,17 +28,14 @@ fn main() {
 
     match cli {
         Commands::Calibrate => {
-            println!("Calibrating table ...");
             table.calibrate().expect("calibration to work");
         }
         Commands::Sitting => {
-            println!("Moving to sitting position ...");
             table
                 .move_to_sitting()
                 .expect("moving to sitting position to work");
         }
         Commands::Standing => {
-            println!("Moving to standing position ...");
             table
                 .move_to_standing()
                 .expect("moving to standing position to work");

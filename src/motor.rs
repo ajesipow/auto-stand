@@ -1,3 +1,4 @@
+use log::debug;
 use rppal::gpio::Gpio;
 use rppal::gpio::OutputPin;
 
@@ -45,15 +46,18 @@ impl DeskMotor {
 impl Motor for DeskMotor {
     fn up(&mut self) {
         self.stop();
+        debug!("Moving up");
         self.pin_up.set_high();
     }
 
     fn down(&mut self) {
         self.stop();
+        debug!("Moving down");
         self.pin_down.set_high();
     }
 
     fn stop(&mut self) {
+        debug!("Stopping");
         self.pin_up.set_low();
         self.pin_down.set_low();
     }

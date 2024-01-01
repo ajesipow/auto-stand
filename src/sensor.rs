@@ -4,6 +4,7 @@ use std::time::SystemTime;
 
 use anyhow::anyhow;
 use anyhow::Result;
+use log::debug;
 use rppal::gpio::Gpio;
 use rppal::gpio::InputPin;
 use rppal::gpio::OutputPin;
@@ -123,16 +124,19 @@ impl DistanceSensor for HCSR04 {
             * (self.calibration_data.max_height.into_inner()
                 - self.calibration_data.min_height.into_inner()) as f32
             + self.calibration_data.min_height.into_inner() as f32;
-        Ok(Centimeter::new(height.round() as u8))
+        let height = Centimeter::new(height.round() as u8);
+        debug!("Current height is {height:?}");
+        Ok(height)
     }
 
     fn set_min_height(
         &mut self,
         height: Centimeter,
     ) -> Result<()> {
-        // Make a measurement to get the timing
-        // Set min height and min echo time
-        self.calibration_data.min_height_echo = self.measure_full_echo_duration()?;
+        debug!("Setting min height {height:?}");
+        let echo_duration = self.measure_full_echo_duration()?;
+        debug!("Min height echo duration: {echo_duration:?}");
+        self.calibration_data.min_height_echo = echo_duration;
         self.calibration_data.min_height = height;
         Ok(())
     }
@@ -141,9 +145,10 @@ impl DistanceSensor for HCSR04 {
         &mut self,
         height: Centimeter,
     ) -> Result<()> {
-        // Make a measurement to get the timing
-        // Set min height and min echo time
-        self.calibration_data.max_height_echo = self.measure_full_echo_duration()?;
+        debug!("Setting max height {height:?}");
+        let echo_duration = self.measure_full_echo_duration()?;
+        debug!("Max height echo duration: {echo_duration:?}");
+        self.calibration_data.max_height_echo = echo_duration;
         self.calibration_data.max_height = height;
         Ok(())
     }
