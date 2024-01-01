@@ -5,6 +5,9 @@ mod sensor;
 mod table;
 
 use clap::Parser;
+use clap::Subcommand;
+use env_logger::Builder;
+use log::LevelFilter;
 
 use crate::movement::Movement;
 use crate::primitives::Centimeter;
@@ -12,6 +15,16 @@ use crate::table::StandingDesk;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Turn debugging information on
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
 enum Commands {
     Calibrate,
     Sitting,
@@ -23,10 +36,20 @@ enum Commands {
 }
 
 fn main() {
-    let cli = Commands::parse();
+    let cli = Cli::parse();
     let mut table = StandingDesk::new();
 
-    match cli {
+    let mut builder = Builder::new();
+
+    let builder = match cli.debug {
+        0 => builder.filter_level(LevelFilter::Error),
+        1 => builder.filter_level(LevelFilter::Warn),
+        2 => builder.filter_level(LevelFilter::Info),
+        _ => builder.filter_level(LevelFilter::Debug),
+    };
+    builder.init();
+
+    match cli.command {
         Commands::Calibrate => {
             table.calibrate().expect("calibration to work");
         }
