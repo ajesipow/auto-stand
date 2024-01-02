@@ -2,11 +2,7 @@ use log::debug;
 use rppal::gpio::Gpio;
 use rppal::gpio::OutputPin;
 
-/// The pin number controlling the motor's upwards movement
-const PIN_UP: u8 = 23;
-
-/// The pin number controlling the motor's downwards movement
-const PIN_DOWN: u8 = 24;
+use crate::config::MotorConfig;
 
 /// A basic crate for the motor driving the standing desk.
 pub(crate) trait Motor {
@@ -29,14 +25,14 @@ impl DeskMotor {
     /// Creates a new DeskMotor.
     /// Panics if the configured pins for driving the motor up or down are the same or if they
     /// cannot be initialised.
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(config: MotorConfig) -> Self {
         let gpio = Gpio::new().expect("gpio to be available");
         let pin_up = gpio
-            .get(PIN_UP)
+            .get(config.up_pin)
             .expect("pin up to be available")
             .into_output();
         let pin_down = gpio
-            .get(PIN_DOWN)
+            .get(config.down_pin)
             .expect("pin down to be available")
             .into_output();
         Self { pin_up, pin_down }

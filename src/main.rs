@@ -1,3 +1,4 @@
+mod config;
 mod motor;
 mod movement;
 mod primitives;
@@ -9,6 +10,7 @@ use clap::Subcommand;
 use env_logger::Builder;
 use log::LevelFilter;
 
+use crate::config::Config;
 use crate::movement::Movement;
 use crate::primitives::Centimeter;
 use crate::table::StandingDesk;
@@ -37,7 +39,8 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
-    let mut table = StandingDesk::new();
+    let config = Config::load("../config.toml").expect("to load configuration");
+    let mut table = StandingDesk::new(config);
 
     let mut builder = Builder::new();
 
@@ -66,7 +69,7 @@ fn main() {
         Commands::MoveTo { height } => {
             println!("Moving to height {:?} ...", height);
             table
-                .move_to_height(Centimeter::new(height))
+                .move_to_height(Centimeter(height))
                 .expect("moving to height to work");
         }
     }

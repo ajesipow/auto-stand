@@ -5,8 +5,9 @@ use anyhow::anyhow;
 use anyhow::Result;
 use log::debug;
 use log::info;
-use once_cell::sync::Lazy;
 
+use crate::config::Config;
+use crate::config::TableConfig;
 use crate::motor::DeskMotor;
 use crate::motor::Motor;
 use crate::movement::Movement;
@@ -14,29 +15,21 @@ use crate::primitives::Centimeter;
 use crate::sensor::DistanceSensor;
 use crate::sensor::HCSR04;
 
-// TODO make configurable
-static MAX_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(150));
-static STANDING_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(110));
-static SITTING_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(60));
-static MIN_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(40));
-
 /// The standing desk implementation.
 #[derive(Debug)]
 pub(crate) struct StandingDesk<S: DistanceSensor = HCSR04, M: Motor = DeskMotor> {
-    max_height: Centimeter,
-    min_height: Centimeter,
+    config: TableConfig,
     sensor: S,
     motor: M,
 }
 
 impl StandingDesk {
     /// Creates a new instance of a standing desk.
-    pub fn new() -> Self {
-        let sensor = HCSR04::new();
-        let motor = DeskMotor::new();
+    pub fn new(config: Config) -> Self {
+        let sensor = HCSR04::new(config.sensor);
+        let motor = DeskMotor::new(config.motor);
         Self {
-            max_height: *MAX_HEIGHT,
-            min_height: *MIN_HEIGHT,
+            config: config.table,
             sensor,
             motor,
         }
@@ -46,12 +39,12 @@ impl StandingDesk {
 impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
     fn move_to_standing(&mut self) -> Result<()> {
         info!("Moving to standing position ...");
-        self.move_to_height(*STANDING_HEIGHT)
+        self.move_to_height(self.config.standing_height)
     }
 
     fn move_to_sitting(&mut self) -> Result<()> {
         info!("Moving to standing position ...");
-        self.move_to_height(*SITTING_HEIGHT)
+        self.move_to_height(self.config.sitting_height)
     }
 
     fn calibrate(&mut self) -> Result<()> {
@@ -68,7 +61,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             current_height = self.sensor.get_current_height()?;
         }
         self.motor.stop();
-        self.sensor.set_max_height(self.max_height)?;
+        self.sensor.set_max_height(self.config.max_table_height)?;
 
         self.motor.down();
         // TODO add timeout
@@ -81,7 +74,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             current_height = self.sensor.get_current_height()?;
         }
         self.motor.stop();
-        self.sensor.set_min_height(self.min_height)?;
+        self.sensor.set_min_height(self.config.min_table_height)?;
 
         // TODO save calibration data to file
 
@@ -92,10 +85,16 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         &mut self,
         height_cm: Centimeter,
     ) -> Result<()> {
-        if height_cm > *MAX_HEIGHT {
-            return Err(anyhow!("Cannot move table higher than {MAX_HEIGHT:?}"));
-        } else if height_cm < *MIN_HEIGHT {
-            return Err(anyhow!("Cannot move table lower than {MIN_HEIGHT:?}"));
+        if height_cm > self.config.max_table_height {
+            return Err(anyhow!(
+                "Cannot move table higher than {:?}",
+                self.config.max_table_height
+            ));
+        } else if height_cm < self.config.min_table_height {
+            return Err(anyhow!(
+                "Cannot move table lower than {:?}",
+                self.config.min_table_height
+            ));
         }
         info!("Moving to height {height_cm:?}");
         let current_height = self.sensor.get_current_height()?;
