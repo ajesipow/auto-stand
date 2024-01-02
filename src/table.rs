@@ -1,6 +1,7 @@
 use std::thread::sleep;
 use std::time::Duration;
 
+use anyhow::anyhow;
 use anyhow::Result;
 use log::debug;
 use log::info;
@@ -14,10 +15,10 @@ use crate::sensor::DistanceSensor;
 use crate::sensor::HCSR04;
 
 // TODO make configurable
-static MAX_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter::new(150));
-static STANDING_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter::new(110));
-static SITTING_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter::new(60));
-static MIN_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter::new(40));
+static MAX_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(150));
+static STANDING_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(110));
+static SITTING_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(60));
+static MIN_HEIGHT: Lazy<Centimeter> = Lazy::new(|| Centimeter(40));
 
 /// The standing desk implementation.
 #[derive(Debug)]
@@ -57,11 +58,11 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         info!("Calibrating");
         self.motor.up();
         let mut current_height = self.sensor.get_current_height()?;
-        let mut previous_height = current_height;
-        // TODO add tolerance?
+        // We subtract a bit to kick-start the while loop below
+        let mut previous_height = current_height - Centimeter(1);
         // TODO add timeout
-        while current_height != previous_height {
-            // Table is still moving up
+        while previous_height < current_height {
+            // Table is still moving
             sleep(Duration::from_millis(200));
             previous_height = current_height;
             current_height = self.sensor.get_current_height()?;
@@ -70,12 +71,11 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         self.sensor.set_max_height(self.max_height)?;
 
         self.motor.down();
-        let mut current_height = self.sensor.get_current_height()?;
-        let mut previous_height = current_height;
-        // TODO add tolerance?
         // TODO add timeout
-        while current_height != previous_height {
-            // Table is still moving up
+        // We add a bit to kick-start the while loop below
+        previous_height = current_height + Centimeter(1);
+        while previous_height > current_height {
+            // Table is still moving down
             sleep(Duration::from_millis(200));
             previous_height = current_height;
             current_height = self.sensor.get_current_height()?;
@@ -92,13 +92,20 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         &mut self,
         height_cm: Centimeter,
     ) -> Result<()> {
+        if height_cm > *MAX_HEIGHT {
+            return Err(anyhow!("Cannot move table higher than {MAX_HEIGHT:?}"));
+        } else if height_cm < *MIN_HEIGHT {
+            return Err(anyhow!("Cannot move table lower than {MIN_HEIGHT:?}"));
+        }
         info!("Moving to height {height_cm:?}");
         let current_height = self.sensor.get_current_height()?;
-        if current_height == height_cm {
+        // We allow for some tolerance as moving the table is not so precise
+        if height_cm - Centimeter(1) <= current_height
+            && current_height <= height_cm + Centimeter(1)
+        {
             debug!("Table already at desired height");
             return Ok(());
         }
-        // TODO add some tolerance
         // TODO add timeout
         if current_height < height_cm {
             self.motor.up();
@@ -107,7 +114,6 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             }
             self.motor.stop();
         }
-        // TODO add some tolerance
         // TODO add timeout
         if current_height > height_cm {
             self.motor.down();
