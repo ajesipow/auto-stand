@@ -60,9 +60,9 @@ impl HCSR04 {
         let gpio = Gpio::new().expect("gpio to be available");
         Self {
             calibration_data: SensorCalibrationData {
-                min_height: Centimeter::new(40),
+                min_height: Centimeter(40),
                 min_height_echo: Duration::from_micros(1166),
-                max_height: Centimeter::new(130),
+                max_height: Centimeter(130),
                 max_height_echo: Duration::from_micros(3790),
             },
             trigger_pin: gpio
@@ -121,10 +121,10 @@ impl DistanceSensor for HCSR04 {
             / (self.calibration_data.max_height_echo - self.calibration_data.min_height_echo)
                 .as_micros() as f32;
         let height = normalized_echo
-            * (self.calibration_data.max_height.into_inner()
-                - self.calibration_data.min_height.into_inner()) as f32
+            * (self.calibration_data.max_height - self.calibration_data.min_height).into_inner()
+                as f32
             + self.calibration_data.min_height.into_inner() as f32;
-        let height = Centimeter::new(height.round() as u8);
+        let height = Centimeter(height.round() as u8);
         debug!("Current height is {height:?}");
         Ok(height)
     }
