@@ -10,13 +10,8 @@ use rppal::gpio::InputPin;
 use rppal::gpio::OutputPin;
 use rppal::gpio::Trigger;
 
+use crate::config::SensorConfig;
 use crate::primitives::Centimeter;
-
-/// The pin number controlling the distance sensor's trigger
-const TRIGGER_PIN: u8 = 4;
-
-/// The pin number listening for the distance sensor's echo signal
-const ECHO_PIN: u8 = 17;
 
 pub(crate) trait DistanceSensor {
     /// Takes a height measurement in centimeters.
@@ -55,7 +50,7 @@ struct SensorCalibrationData {
 
 impl HCSR04 {
     /// Creates a new [HCSR04] with predefined calibration parameters.
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(config: SensorConfig) -> Self {
         // TODO read calibration data from file
         let gpio = Gpio::new().expect("gpio to be available");
         Self {
@@ -66,11 +61,11 @@ impl HCSR04 {
                 max_height_echo: Duration::from_micros(3790),
             },
             trigger_pin: gpio
-                .get(TRIGGER_PIN)
+                .get(config.trigger_pin)
                 .expect("trigger pin be available")
                 .into_output(),
             echo_pin: gpio
-                .get(ECHO_PIN)
+                .get(config.echo_pin)
                 .expect("echo pin be available")
                 // Echo should be on low per default
                 .into_input_pulldown(),

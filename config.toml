@@ -1,0 +1,13 @@
+[table]
+max_table_height = 155
+min_table_height = 40
+sitting_height = 70
+standing_height = 110
+
+[motor]
+up_pin = 23
+down_pin = 24
+
+[sensor]
+trigger_pin = 4
+echo_pin = 17

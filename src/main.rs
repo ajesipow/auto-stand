@@ -1,14 +1,18 @@
+mod config;
 mod motor;
 mod movement;
 mod primitives;
 mod sensor;
 mod table;
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use clap::Subcommand;
 use env_logger::Builder;
 use log::LevelFilter;
 
+use crate::config::Config;
 use crate::movement::Movement;
 use crate::primitives::Centimeter;
 use crate::table::StandingDesk;
@@ -16,12 +20,16 @@ use crate::table::StandingDesk;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+
     /// Turn debugging information on
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
 
-    #[command(subcommand)]
-    command: Commands,
+    /// The path to the config file
+    #[arg(short, long, value_name = "FILE")]
+    config: PathBuf,
 }
 
 #[derive(Subcommand)]
@@ -37,7 +45,8 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
-    let mut table = StandingDesk::new();
+    let config = Config::load(cli.config).expect("be able to load configuration");
+    let mut table = StandingDesk::new(config);
 
     let mut builder = Builder::new();
 
@@ -66,7 +75,7 @@ fn main() {
         Commands::MoveTo { height } => {
             println!("Moving to height {:?} ...", height);
             table
-                .move_to_height(Centimeter::new(height))
+                .move_to_height(Centimeter(height))
                 .expect("moving to height to work");
         }
     }
