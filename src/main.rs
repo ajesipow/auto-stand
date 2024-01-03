@@ -5,6 +5,8 @@ mod primitives;
 mod sensor;
 mod table;
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use clap::Subcommand;
 use env_logger::Builder;
@@ -26,8 +28,8 @@ struct Cli {
     debug: u8,
 
     /// The path to the config file
-    #[arg(short, long)]
-    config_file: String,
+    #[arg(short, long, value_name = "FILE")]
+    config: PathBuf,
 }
 
 #[derive(Subcommand)]
@@ -43,7 +45,7 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
-    let config = Config::load(cli.config_file).expect("be able to load configuration");
+    let config = Config::load(cli.config).expect("be able to load configuration");
     let mut table = StandingDesk::new(config);
 
     let mut builder = Builder::new();
