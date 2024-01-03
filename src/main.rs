@@ -18,12 +18,16 @@ use crate::table::StandingDesk;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+
     /// Turn debugging information on
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
 
-    #[command(subcommand)]
-    command: Commands,
+    /// The path to the config file
+    #[arg(short, long)]
+    config_file: String,
 }
 
 #[derive(Subcommand)]
@@ -39,7 +43,7 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
-    let config = Config::load("../config.toml").expect("to load configuration");
+    let config = Config::load(cli.config_file).expect("be able to load configuration");
     let mut table = StandingDesk::new(config);
 
     let mut builder = Builder::new();
