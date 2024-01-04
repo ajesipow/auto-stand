@@ -39,6 +39,15 @@ impl StandingDesk {
     pub fn get_measurement(&mut self) -> Result<Centimeter> {
         self.sensor.current_height()
     }
+    
+    pub fn move_motor(&mut self) -> Result<()> {
+        self.motor.up();
+        sleep(Duration::from_secs(1));
+        self.motor.down();
+        sleep(Duration::from_secs(1));
+        self.motor.stop();
+        Ok(())
+    }
 }
 
 impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
