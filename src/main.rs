@@ -6,6 +6,8 @@ mod sensor;
 mod table;
 
 use std::path::PathBuf;
+use std::thread::sleep;
+use std::time::Duration;
 
 use clap::Parser;
 use clap::Subcommand;
@@ -41,6 +43,7 @@ enum Commands {
     MoveTo {
         height: u8,
     },
+    TestSensor,
 }
 
 fn main() {
@@ -77,6 +80,14 @@ fn main() {
             table
                 .move_to_height(Centimeter(height))
                 .expect("moving to height to work");
+        }
+        Commands::TestSensor => {
+            println!("Testing distance sensor");
+            loop {
+                sleep(Duration::from_millis(200));
+                let current_height = table.get_measurement().unwrap().0;
+                println!("current distance: {current_height:?}");
+            }
         }
     }
 }

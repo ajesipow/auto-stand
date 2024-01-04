@@ -1,4 +1,4 @@
-min_height = 40
-min_height_echo = 0.0046648
-max_height = 155
-max_height_echo = 0.0180761
+min_height = 5
+min_height_echo = 0.00014
+max_height = 35
+max_height_echo = 0.00102
