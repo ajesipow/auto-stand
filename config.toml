@@ -5,8 +5,8 @@ sitting_height = 70
 standing_height = 110
 
 [motor]
-up_pin = 17
-down_pin = 18
+up_pin = 18
+down_pin = 17
 
 [sensor]
 trigger_pin = 4

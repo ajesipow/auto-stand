@@ -43,6 +43,8 @@ impl StandingDesk {
     pub fn move_motor(&mut self) -> Result<()> {
         self.motor.up();
         sleep(Duration::from_secs(1));
+        self.motor.stop();
+        sleep(Duration::from_secs(2));
         self.motor.down();
         sleep(Duration::from_secs(1));
         self.motor.stop();
