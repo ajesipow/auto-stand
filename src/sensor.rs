@@ -97,8 +97,9 @@ impl HCSR04 {
         // We want to block on both rising and falling signal edges which indicate the start and end
         // of a measurement respectively.
         // TODO move this into the constructor?
+        self.echo_pin.clear_interrupt()?;
         self.echo_pin.set_interrupt(Trigger::Both)?;
-
+        
         // TODO add mechanism to prevent too frequent calls of this function
         self.trigger_pin.set_high();
         // Trigger needs to be set to high for at least 10us, let's be certain here with 100us.
@@ -118,6 +119,7 @@ impl HCSR04 {
         self.echo_pin
             .poll_interrupt(false, Some(Duration::from_millis(250)))?;
         let echo_duration = start_time.elapsed()?;
+        debug!("echo_duration: {echo_duration:?}");
         if echo_duration >= Duration::from_millis(200) {
             return Err(anyhow!("unsuccessful measurement"));
         }
