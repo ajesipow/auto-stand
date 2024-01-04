@@ -52,11 +52,11 @@ pub(crate) struct SensorCalibrationData {
     // The minimum height we can observe
     pub min_height: Centimeter,
     // The duration of the echo in ms at minimum height
-    pub min_height_echo: Duration,
+    pub min_height_echo_secs: f32,
     // The max height we can observe
     pub max_height: Centimeter,
     // The duration of the echo in ms at max height
-    pub max_height_echo: Duration,
+    pub max_height_echo_secs: f32,
 }
 
 impl SensorCalibrationData {
@@ -129,10 +129,12 @@ impl DistanceSensor for HCSR04 {
     fn current_height(&mut self) -> Result<Centimeter> {
         let echo_duration = self.measure_full_echo_duration()?;
         // We're interpolating the height from our calibration parameters
-        let normalized_echo = (echo_duration - self.calibration_data.min_height_echo).as_micros()
-            as f32
-            / (self.calibration_data.max_height_echo - self.calibration_data.min_height_echo)
-                .as_micros() as f32;
+        let normalized_echo = (echo_duration
+            - Duration::from_secs_f32(self.calibration_data.min_height_echo_secs))
+        .as_micros() as f32
+            / (Duration::from_secs_f32(self.calibration_data.max_height_echo_secs)
+                - Duration::from_secs_f32(self.calibration_data.min_height_echo_secs))
+            .as_micros() as f32;
         let height = normalized_echo
             * (self.calibration_data.max_height - self.calibration_data.min_height).into_inner()
                 as f32
@@ -149,7 +151,7 @@ impl DistanceSensor for HCSR04 {
         debug!("Setting min height {height:?}");
         let echo_duration = self.measure_full_echo_duration()?;
         debug!("Min height echo duration: {echo_duration:?}");
-        self.calibration_data.min_height_echo = echo_duration;
+        self.calibration_data.min_height_echo_secs = echo_duration.as_secs_f32();
         self.calibration_data.min_height = height;
         Ok(())
     }
@@ -161,7 +163,7 @@ impl DistanceSensor for HCSR04 {
         debug!("Setting max height {height:?}");
         let echo_duration = self.measure_full_echo_duration()?;
         debug!("Max height echo duration: {echo_duration:?}");
-        self.calibration_data.max_height_echo = echo_duration;
+        self.calibration_data.max_height_echo_secs = echo_duration.as_secs_f32();
         self.calibration_data.max_height = height;
         Ok(())
     }
