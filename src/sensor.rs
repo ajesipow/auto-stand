@@ -10,6 +10,7 @@ use anyhow::Result;
 use log::debug;
 use rppal::gpio::Gpio;
 use rppal::gpio::InputPin;
+use rppal::gpio::Level;
 use rppal::gpio::OutputPin;
 use rppal::gpio::Trigger;
 use serde::Deserialize;
@@ -51,12 +52,12 @@ pub(crate) struct HCSR04 {
 pub(crate) struct SensorCalibrationData {
     // The minimum height we can observe
     pub min_height: Centimeter,
-    // The duration of the echo in ms at minimum height
-    pub min_height_echo_secs: f32,
+    // The duration of the echo in us at minimum height
+    pub min_height_echo_us: u64,
     // The max height we can observe
     pub max_height: Centimeter,
-    // The duration of the echo in ms at max height
-    pub max_height_echo_secs: f32,
+    // The duration of the echo in us at max height
+    pub max_height_echo_us: u64,
 }
 
 impl SensorCalibrationData {
@@ -75,6 +76,16 @@ impl HCSR04 {
         let calibration_file_path = config.calibration_file;
         let calibration_data = SensorCalibrationData::load(&calibration_file_path)
             .expect("calibration data must be available");
+        let mut echo_pin = gpio
+            .get(config.echo_pin)
+            .expect("echo pin be available")
+            // Echo should be on low per default
+            .into_input_pulldown();
+        // We want to block on both rising and falling signal edges which indicate the start and end
+        // of a measurement respectively.
+        echo_pin
+            .set_interrupt(Trigger::Both)
+            .expect("must be able to set echo interrupt trigger");
         Self {
             calibration_file_path,
             calibration_data,
@@ -82,11 +93,7 @@ impl HCSR04 {
                 .get(config.trigger_pin)
                 .expect("trigger pin be available")
                 .into_output(),
-            echo_pin: gpio
-                .get(config.echo_pin)
-                .expect("echo pin be available")
-                // Echo should be on low per default
-                .into_input_pulldown(),
+            echo_pin,
         }
     }
 
@@ -94,21 +101,17 @@ impl HCSR04 {
     /// # Errors
     /// Errors if there is no object close enough or the object is too small.
     fn measure_full_echo_duration(&mut self) -> Result<Duration> {
-        // We want to block on both rising and falling signal edges which indicate the start and end
-        // of a measurement respectively.
-        // TODO move this into the constructor?
-        self.echo_pin.set_interrupt(Trigger::Both)?;
-
-        // TODO add mechanism to prevent too frequent calls of this function
+        // "Load" the trigger - this does not set off the trigger yet, see below.
         self.trigger_pin.set_high();
         // Trigger needs to be set to high for at least 10us, let's be certain here with 100us.
-        sleep(Duration::from_micros(500));
+        sleep(Duration::from_micros(100));
         // A falling signal edge is the actual trigger for the sensor to start the measurement.
         self.trigger_pin.set_low();
         // Wait for the rising edge indicating the start of the measurement.
         // We expect a delay of around 500us as per the datasheet:
         // https://www.mikrocontroller.net/attachment/218122/HC-SR04_ultraschallmodul_beschreibung_3.pdf
-        self.echo_pin
+        let start_echo_level = self
+            .echo_pin
             .poll_interrupt(false, Some(Duration::from_millis(10)))?;
         let start_time = SystemTime::now();
         // Let's wait for the falling edge indicating the end of the measurement.
@@ -118,9 +121,22 @@ impl HCSR04 {
         self.echo_pin
             .poll_interrupt(false, Some(Duration::from_millis(250)))?;
         let echo_duration = start_time.elapsed()?;
+
         debug!("echo_duration: {echo_duration:?}");
+        // We only check the pin value here to keep the measurement above as clean as possible.
+        match start_echo_level {
+            None => return Err(anyhow!("unsuccessful measurement, echo trigger timed out")),
+            Some(Level::Low) => {
+                return Err(anyhow!(
+                    "unsuccessful measurement, echo triggered on low signal"
+                ))
+            }
+            _ => (),
+        }
         if echo_duration >= Duration::from_millis(200) {
-            return Err(anyhow!("unsuccessful measurement"));
+            return Err(anyhow!(
+                "unsuccessful measurement, probably no object close enough"
+            ));
         }
         Ok(echo_duration)
     }
@@ -131,10 +147,10 @@ impl DistanceSensor for HCSR04 {
         let echo_duration = self.measure_full_echo_duration()?;
         // We're interpolating the height from our calibration parameters
         let normalized_echo = (echo_duration
-            - Duration::from_secs_f32(self.calibration_data.min_height_echo_secs))
+            - Duration::from_micros(self.calibration_data.min_height_echo_us))
         .as_micros() as f32
-            / (Duration::from_secs_f32(self.calibration_data.max_height_echo_secs)
-                - Duration::from_secs_f32(self.calibration_data.min_height_echo_secs))
+            / (Duration::from_micros(self.calibration_data.max_height_echo_us)
+                - Duration::from_micros(self.calibration_data.min_height_echo_us))
             .as_micros() as f32;
         let height = normalized_echo
             * (self.calibration_data.max_height - self.calibration_data.min_height).into_inner()
@@ -152,7 +168,7 @@ impl DistanceSensor for HCSR04 {
         debug!("Setting min height {height:?}");
         let echo_duration = self.measure_full_echo_duration()?;
         debug!("Min height echo duration: {echo_duration:?}");
-        self.calibration_data.min_height_echo_secs = echo_duration.as_secs_f32();
+        self.calibration_data.min_height_echo_us = echo_duration.as_micros() as u64;
         self.calibration_data.min_height = height;
         Ok(())
     }
@@ -164,7 +180,7 @@ impl DistanceSensor for HCSR04 {
         debug!("Setting max height {height:?}");
         let echo_duration = self.measure_full_echo_duration()?;
         debug!("Max height echo duration: {echo_duration:?}");
-        self.calibration_data.max_height_echo_secs = echo_duration.as_secs_f32();
+        self.calibration_data.max_height_echo_us = echo_duration.as_micros() as u64;
         self.calibration_data.max_height = height;
         Ok(())
     }
