@@ -97,20 +97,19 @@ impl HCSR04 {
         // We want to block on both rising and falling signal edges which indicate the start and end
         // of a measurement respectively.
         // TODO move this into the constructor?
-        self.echo_pin.clear_interrupt()?;
         self.echo_pin.set_interrupt(Trigger::Both)?;
-        
+
         // TODO add mechanism to prevent too frequent calls of this function
         self.trigger_pin.set_high();
         // Trigger needs to be set to high for at least 10us, let's be certain here with 100us.
-        sleep(Duration::from_micros(100));
+        sleep(Duration::from_micros(500));
         // A falling signal edge is the actual trigger for the sensor to start the measurement.
         self.trigger_pin.set_low();
         // Wait for the rising edge indicating the start of the measurement.
         // We expect a delay of around 500us as per the datasheet:
         // https://www.mikrocontroller.net/attachment/218122/HC-SR04_ultraschallmodul_beschreibung_3.pdf
         self.echo_pin
-            .poll_interrupt(true, Some(Duration::from_millis(1)))?;
+            .poll_interrupt(false, Some(Duration::from_millis(10)))?;
         let start_time = SystemTime::now();
         // Let's wait for the falling edge indicating the end of the measurement.
         // No need to reset the interrupt as we've just received the last event.
