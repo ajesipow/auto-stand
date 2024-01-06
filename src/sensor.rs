@@ -107,14 +107,17 @@ impl HCSR04 {
     }
 
     /// Performs multiple echo measurements and takes the average for a less noisy signal.
-    fn measure_full_echo_duration(&mut self) -> Result<Duration> {
+    fn measure_burst_echo_duration(&mut self) -> Result<Duration> {
         self.measurement_buffer.clear();
         for _ in 0..self.measurement_burst {
             let echo = self.measure_one_full_echo_duration()?;
             self.measurement_buffer.push(echo);
             sleep(Duration::from_millis(30));
         }
-        Ok(self.measurement_buffer.iter().sum::<Duration>() / self.measurement_burst as u32)
+        let average_burst_echo_duration =
+            self.measurement_buffer.iter().sum::<Duration>() / self.measurement_burst as u32;
+        debug!("average_burst_echo_duration: {average_burst_echo_duration:?}");
+        Ok(average_burst_echo_duration)
     }
 
     /// Measures the time it takes for the sensor to send and receive an acoustic echo.
@@ -142,7 +145,6 @@ impl HCSR04 {
             .poll_interrupt(false, Some(Duration::from_millis(250)))?;
         let echo_duration = start_time.elapsed()?;
 
-        debug!("echo_duration: {echo_duration:?}");
         // We only check the pin value here to keep the measurement above as clean as possible.
         match start_echo_level {
             None => return Err(anyhow!("unsuccessful measurement, echo trigger timed out")),
@@ -164,7 +166,7 @@ impl HCSR04 {
 
 impl DistanceSensor for HCSR04 {
     fn current_height(&mut self) -> Result<Centimeter> {
-        let echo_duration = self.measure_full_echo_duration()?;
+        let echo_duration = self.measure_burst_echo_duration()?;
         // We're interpolating the height from our calibration parameters
         let min_height_calibration_echo =
             Duration::from_micros(self.calibration_data.min_height_echo_us);
@@ -186,7 +188,7 @@ impl DistanceSensor for HCSR04 {
         height: Centimeter,
     ) -> Result<()> {
         debug!("Setting min height {height:?}");
-        let echo_duration = self.measure_full_echo_duration()?;
+        let echo_duration = self.measure_burst_echo_duration()?;
         debug!("Min height echo duration: {echo_duration:?}");
         self.calibration_data.min_height_echo_us = echo_duration.as_micros() as u64;
         self.calibration_data.min_height = height;
@@ -198,7 +200,7 @@ impl DistanceSensor for HCSR04 {
         height: Centimeter,
     ) -> Result<()> {
         debug!("Setting max height {height:?}");
-        let echo_duration = self.measure_full_echo_duration()?;
+        let echo_duration = self.measure_burst_echo_duration()?;
         debug!("Max height echo duration: {echo_duration:?}");
         self.calibration_data.max_height_echo_us = echo_duration.as_micros() as u64;
         self.calibration_data.max_height = height;
