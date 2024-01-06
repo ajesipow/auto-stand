@@ -46,6 +46,12 @@ pub(crate) struct HCSR04 {
     calibration_data: SensorCalibrationData,
     trigger_pin: OutputPin,
     echo_pin: InputPin,
+    // We're making several measurements and averaging them to get a less noisy estimate
+    measurement_buffer: Vec<Duration>,
+    // The number of measurements to do in burst for filling measurement buffer.
+    // This is a u8 because it doesn't make sense to make more than 256 measurements in burst
+    // as that would equal to around 7s of measurement time.
+    measurement_burst: u8,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -86,6 +92,7 @@ impl HCSR04 {
         echo_pin
             .set_interrupt(Trigger::Both)
             .expect("must be able to set echo interrupt trigger");
+        let measurement_burst = 3;
         Self {
             calibration_file_path,
             calibration_data,
@@ -94,13 +101,26 @@ impl HCSR04 {
                 .expect("trigger pin be available")
                 .into_output(),
             echo_pin,
+            measurement_buffer: Vec::with_capacity(measurement_burst as usize),
+            measurement_burst,
         }
+    }
+
+    /// Performs multiple echo measurements and takes the average for a less noisy signal.
+    fn measure_full_echo_duration(&mut self) -> Result<Duration> {
+        self.measurement_buffer.clear();
+        for _ in 0..self.measurement_burst {
+            let echo = self.measure_one_full_echo_duration()?;
+            self.measurement_buffer.push(echo);
+            sleep(Duration::from_millis(30));
+        }
+        Ok(self.measurement_buffer.iter().sum::<Duration>() / self.measurement_burst as u32)
     }
 
     /// Measures the time it takes for the sensor to send and receive an acoustic echo.
     /// # Errors
     /// Errors if there is no object close enough or the object is too small.
-    fn measure_full_echo_duration(&mut self) -> Result<Duration> {
+    fn measure_one_full_echo_duration(&mut self) -> Result<Duration> {
         // "Load" the trigger - this does not set off the trigger yet, see below.
         self.trigger_pin.set_high();
         // Trigger needs to be set to high for at least 10us, let's be certain here with 100us.
@@ -150,8 +170,6 @@ impl DistanceSensor for HCSR04 {
             Duration::from_micros(self.calibration_data.min_height_echo_us);
         let max_height_calibration_echo =
             Duration::from_micros(self.calibration_data.max_height_echo_us);
-        debug!("min_height_calibration_data {min_height_calibration_echo:?}");
-        debug!("max_height_calibration_echo {max_height_calibration_echo:?}");
         let normalized_echo = (echo_duration - min_height_calibration_echo).as_micros() as f32
             / (max_height_calibration_echo - min_height_calibration_echo).as_micros() as f32;
         let height = normalized_echo
