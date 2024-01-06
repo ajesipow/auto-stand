@@ -72,20 +72,21 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         // TODO add timeout
         while previous_height < current_height {
             // Table is still moving
-            sleep(Duration::from_millis(200));
+            sleep(Duration::from_secs(2));
             previous_height = current_height;
             current_height = self.sensor.current_height()?;
         }
-        self.motor.stop();
         self.sensor.set_max_height(self.config.max_table_height)?;
 
         self.motor.down();
         // TODO add timeout
         // We add a bit to kick-start the while loop below
-        previous_height = current_height + Centimeter(1);
+        let mut current_height = self.sensor.current_height()?;
+        // We subtract a bit to kick-start the while loop below
+        let mut previous_height = current_height + Centimeter(1);
         while previous_height > current_height {
             // Table is still moving down
-            sleep(Duration::from_millis(200));
+            sleep(Duration::from_secs(2));
             previous_height = current_height;
             current_height = self.sensor.current_height()?;
         }
