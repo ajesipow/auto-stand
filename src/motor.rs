@@ -27,14 +27,16 @@ impl DeskMotor {
     /// cannot be initialised.
     pub(crate) fn new(config: MotorConfig) -> Self {
         let gpio = Gpio::new().expect("gpio to be available");
-        let pin_up = gpio
+        let mut pin_up = gpio
             .get(config.up_pin)
             .expect("pin up to be available")
             .into_output();
-        let pin_down = gpio
+        pin_up.set_low();
+        let mut pin_down = gpio
             .get(config.down_pin)
             .expect("pin down to be available")
             .into_output();
+        pin_down.set_low();
         Self { pin_up, pin_down }
     }
 }
