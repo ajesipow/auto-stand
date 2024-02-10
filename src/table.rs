@@ -68,8 +68,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         fs::write(calibration_file, raw_calibration_data)?;
         debug!("Calibration data written to {calibration_file:?}");
 
-        // self.move_to_sitting()
-        Ok(())
+        self.move_to_sitting()
     }
 
     fn move_to_height(
@@ -101,7 +100,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             let now = Instant::now();
             self.motor.up();
             while self.sensor.current_height()? < height_cm && now.elapsed() < move_timeout {
-                sleep(Duration::from_millis(250));
+                sleep(Duration::from_millis(100));
             }
             self.motor.stop();
         }
@@ -109,7 +108,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             let now = Instant::now();
             self.motor.down();
             while self.sensor.current_height()? > height_cm && now.elapsed() < move_timeout {
-                sleep(Duration::from_millis(250));
+                sleep(Duration::from_millis(100));
             }
             self.motor.stop();
         }

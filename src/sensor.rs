@@ -92,7 +92,7 @@ impl HCSR04 {
         echo_pin
             .set_interrupt(Trigger::Both)
             .expect("must be able to set echo interrupt trigger");
-        let measurement_burst = 3;
+        let measurement_burst = 5;
         Self {
             calibration_file_path,
             calibration_data,
@@ -108,12 +108,15 @@ impl HCSR04 {
 
     /// Performs multiple echo measurements and takes the average for a less noisy signal.
     fn measure_burst_echo_duration(&mut self) -> Result<Duration> {
+	println!("measurement buffer: {:?}", self.measurement_buffer);
         self.measurement_buffer.clear();
+	println!("measurement buffer: {:?}", self.measurement_buffer);
         for _ in 0..self.measurement_burst {
             let echo = self.measure_one_full_echo_duration()?;
             self.measurement_buffer.push(echo);
             sleep(Duration::from_millis(30));
         }
+	println!("measurement buffer: {:?}", self.measurement_buffer);
         let average_burst_echo_duration =
             self.measurement_buffer.iter().sum::<Duration>() / self.measurement_burst as u32;
         debug!("average_burst_echo_duration: {average_burst_echo_duration:?}");
@@ -135,14 +138,14 @@ impl HCSR04 {
         // https://www.mikrocontroller.net/attachment/218122/HC-SR04_ultraschallmodul_beschreibung_3.pdf
         let start_echo_level = self
             .echo_pin
-            .poll_interrupt(false, Some(Duration::from_millis(10)))?;
+            .poll_interrupt(true, Some(Duration::from_millis(10)))?;
         let start_time = SystemTime::now();
         // Let's wait for the falling edge indicating the end of the measurement.
         // No need to reset the interrupt as we've just received the last event.
         // Timeout is 250ms as the sensor should return to low after 200ms max to indicate an
         // unsuccessful measurement.
         self.echo_pin
-            .poll_interrupt(false, Some(Duration::from_millis(250)))?;
+            .poll_interrupt(true, Some(Duration::from_millis(250)))?;
         let echo_duration = start_time.elapsed()?;
 
         // We only check the pin value here to keep the measurement above as clean as possible.
