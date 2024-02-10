@@ -55,12 +55,11 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
     fn calibrate(&mut self) -> Result<()> {
         info!("Calibrating");
         self.motor.up();
-        sleep(Duration::from_secs(30));
-        self.motor.stop();
+        sleep(Duration::from_secs(20));
         self.sensor.set_max_height(self.config.max_table_height)?;
 
         self.motor.down();
-        sleep(Duration::from_secs(30));
+        sleep(Duration::from_secs(20));
         self.motor.stop();
         self.sensor.set_min_height(self.config.min_table_height)?;
 
