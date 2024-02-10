@@ -35,3 +35,15 @@ fix: _c-fix format
 update-nightly-fmt:
 	rustup toolchain install --profile minimal nightly-2023-12-07 --no-self-update
 	rustup component add rustfmt --toolchain nightly-2023-12-07
+
+# Move the table to the standing position
+stand:
+    cargo run -- --config=config.toml standing
+
+# Move the table to the sitting position
+sit:
+    cargo run -- --config=config.toml sitting
+
+# Calibrates the table in debug mode
+calibrate:
+    cargo run -- --config=config.toml -ddd calibrate
