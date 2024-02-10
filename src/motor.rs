@@ -19,8 +19,8 @@ pub(crate) trait Motor {
 }
 
 pub(crate) struct DeskMotor {
-    pin_up: Pin,
-    pin_down: Pin,
+    pin_up: OutputPin,
+    pin_down: OutputPin,
     last_start_time: Option<SystemTime>,
 }
 
@@ -32,12 +32,10 @@ impl DeskMotor {
         let gpio = Gpio::new().expect("gpio to be available");
         let pin_up = gpio
             .get(config.up_pin)
-            .expect("pin up to be available");
-        println!("pin up level and mode {:?}, {:?}", pin_up.read(), pin_up.mode());
+            .expect("pin up to be available").into_output();
         let pin_down = gpio
             .get(config.down_pin)
-            .expect("pin down to be available");
-        println!("pin down level and mode {:?}, {:?}", pin_down.read(), pin_down.mode());
+            .expect("pin down to be available").into_output();
         Self {
             pin_up,
             pin_down,
@@ -50,18 +48,18 @@ impl Motor for DeskMotor {
     fn up(&mut self) {
         self.stop();
         debug!("Moving up");
-        // self.pin_up.into_output().set_high();
+        self.pin_up.into_output().set_high();
     }
 
     fn down(&mut self) {
         self.stop();
         debug!("Moving down");
-        // self.pin_down.into_output().set_high();
+        self.pin_down.into_output().set_high();
     }
 
     fn stop(&mut self) {
         debug!("Stopping");
-        // self.pin_up.into_output().set_low();
-        // self.pin_down.into_output().set_low();
+        self.pin_up.into_output().set_low();
+        self.pin_down.into_output().set_low();
     }
 }
