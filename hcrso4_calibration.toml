@@ -1,4 +1,4 @@
 min_height = 65
-min_height_echo_us = 3381
+min_height_echo_secs = 3.381
 max_height = 126
-max_height_echo_us = 6938
+max_height_echo_secs = 6.938

@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use log::debug;
 use rppal::gpio::Gpio;
 use rppal::gpio::OutputPin;
@@ -19,6 +21,7 @@ pub(crate) trait Motor {
 pub(crate) struct DeskMotor {
     pin_up: OutputPin,
     pin_down: OutputPin,
+    last_start_time: Option<SystemTime>,
 }
 
 impl DeskMotor {
@@ -35,7 +38,11 @@ impl DeskMotor {
             .get(config.down_pin)
             .expect("pin down to be available")
             .into_output();
-        Self { pin_up, pin_down }
+        Self {
+            pin_up,
+            pin_down,
+            last_start_time: None,
+        }
     }
 }
 

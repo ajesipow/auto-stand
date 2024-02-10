@@ -59,11 +59,11 @@ pub(crate) struct SensorCalibrationData {
     // The minimum height we can observe
     pub min_height: Centimeter,
     // The duration of the echo in us at minimum height
-    pub min_height_echo_us: u64,
+    pub min_height_echo_secs: f32,
     // The max height we can observe
     pub max_height: Centimeter,
     // The duration of the echo in us at max height
-    pub max_height_echo_us: u64,
+    pub max_height_echo_secs: f32,
 }
 
 impl SensorCalibrationData {
@@ -166,14 +166,12 @@ impl HCSR04 {
 
 impl DistanceSensor for HCSR04 {
     fn current_height(&mut self) -> Result<Centimeter> {
-        let echo_duration = self.measure_burst_echo_duration()?;
+        let echo_duration = self.measure_burst_echo_duration()?.as_secs_f32();
         // We're interpolating the height from our calibration parameters
-        let min_height_calibration_echo =
-            Duration::from_micros(self.calibration_data.min_height_echo_us);
-        let max_height_calibration_echo =
-            Duration::from_micros(self.calibration_data.max_height_echo_us);
-        let normalized_echo = (echo_duration - min_height_calibration_echo).as_micros() as f32
-            / (max_height_calibration_echo - min_height_calibration_echo).as_micros() as f32;
+        let min_height_calibration_echo = self.calibration_data.min_height_echo_secs;
+        let max_height_calibration_echo = self.calibration_data.max_height_echo_secs;
+        let normalized_echo = (echo_duration - min_height_calibration_echo)
+            / (max_height_calibration_echo - min_height_calibration_echo);
         let height = normalized_echo
             * (self.calibration_data.max_height - self.calibration_data.min_height).into_inner()
                 as f32
