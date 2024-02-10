@@ -1,13 +1,14 @@
 [table]
-max_table_height = 155
-min_table_height = 40
-sitting_height = 70
-standing_height = 110
+max_table_height = 126
+min_table_height = 65
+sitting_height = 78
+standing_height = 119
 
 [motor]
-up_pin = 23
-down_pin = 24
+up_pin = 18
+down_pin = 17
 
 [sensor]
 trigger_pin = 4
-echo_pin = 17
+echo_pin = 27
+calibration_file = "hcrso4_calibration.toml"
