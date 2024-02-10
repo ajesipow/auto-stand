@@ -19,8 +19,8 @@ pub(crate) trait Motor {
 }
 
 pub(crate) struct DeskMotor {
-    pin_up: Pin,
-    pin_down: Pin,
+    pin_up: OutputPin,
+    pin_down: OutputPin,
     last_start_time: Option<SystemTime>,
 }
 
@@ -32,10 +32,10 @@ impl DeskMotor {
         let gpio = Gpio::new().expect("gpio to be available");
         let pin_up = gpio
             .get(config.up_pin)
-            .expect("pin up to be available");
+            .expect("pin up to be available").into_output_high();
         let pin_down = gpio
             .get(config.down_pin)
-            .expect("pin down to be available");
+            .expect("pin down to be available").into_output_high();
         Self {
             pin_up,
             pin_down,
