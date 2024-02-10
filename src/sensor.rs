@@ -92,7 +92,7 @@ impl HCSR04 {
         echo_pin
             .set_interrupt(Trigger::Both)
             .expect("must be able to set echo interrupt trigger");
-        let measurement_burst = 3;
+        let measurement_burst = 5;
         Self {
             calibration_file_path,
             calibration_data,
