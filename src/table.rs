@@ -1,6 +1,7 @@
 use std::fs;
 use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use std::time::Instant;
 
 use anyhow::anyhow;
 use anyhow::Result;
@@ -95,12 +96,12 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             debug!("Table already at desired height");
             return Ok(());
         }
-        let move_timeout = Duration::from_secs(20);
+        let move_timeout = Duration::from_secs(30);
         if current_height < height_cm {
             let now = Instant::now();
             self.motor.up();
             while self.sensor.current_height()? < height_cm && now.elapsed() < move_timeout {
-                sleep(Duration::from_millis(100));
+                sleep(Duration::from_millis(25));
             }
             self.motor.stop();
         }
@@ -108,7 +109,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             let now = Instant::now();
             self.motor.down();
             while self.sensor.current_height()? > height_cm && now.elapsed() < move_timeout {
-                sleep(Duration::from_millis(100));
+                sleep(Duration::from_millis(25));
             }
             self.motor.stop();
         }
