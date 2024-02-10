@@ -38,11 +38,11 @@ update-nightly-fmt:
 
 # Move the table to the standing position
 stand:
-    cargo run -- --config=config.toml standing
+    cargo run -- --config=config.toml -d standing
 
 # Move the table to the sitting position
 sit:
-    cargo run -- --config=config.toml sitting
+    cargo run -- --config=config.toml -d sitting
 
 # Calibrates the table in debug mode
 calibrate:
