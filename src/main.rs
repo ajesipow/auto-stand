@@ -83,10 +83,12 @@ fn main() {
         }
         Commands::TestSensor => {
             println!("Testing distance sensor");
-            loop {
+            let mut i = 0;
+            while i < 50 {
                 sleep(Duration::from_millis(200));
                 let current_height = table.get_measurement().unwrap().0;
                 println!("current distance: {current_height:?}");
+                i += 1;
             }
         }
     }
