@@ -69,6 +69,7 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
         debug!("Calibration data written to {calibration_file:?}");
 
         // self.move_to_sitting()
+        Ok(())
     }
 
     fn move_to_height(
