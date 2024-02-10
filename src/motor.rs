@@ -48,18 +48,18 @@ impl Motor for DeskMotor {
     fn up(&mut self) {
         self.stop();
         debug!("Moving up");
-        self.pin_up.into_output().set_high();
+        // self.pin_up.into_output().set_high();
     }
 
     fn down(&mut self) {
         self.stop();
         debug!("Moving down");
-        self.pin_down.into_output().set_high();
+        // self.pin_down.into_output().set_high();
     }
 
     fn stop(&mut self) {
         debug!("Stopping");
-        self.pin_up.into_output().set_low();
-        self.pin_down.into_output().set_low();
+        // self.pin_up.into_output().set_low();
+        // self.pin_down.into_output().set_low();
     }
 }
