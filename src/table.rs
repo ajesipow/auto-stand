@@ -96,18 +96,20 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
             return Ok(());
         }
         if current_height < height_cm {
-            self.motor_driver
-                // FIXME do not use unwrap
-                .up_until_false_or_timeout(&mut || {
-                    self.sensor.current_height().unwrap() < height_cm
-                });
+            self.motor_driver.up_until_false_or_timeout(&mut || {
+                match self.sensor.current_height() {
+                    Err(_) => false, // We stop if there is an error in the measurement
+                    Ok(current_height) => current_height < height_cm,
+                }
+            });
         }
         if current_height > height_cm {
-            self.motor_driver
-                // FIXME do not use unwrap
-                .down_until_false_or_timeout(&mut || {
-                    self.sensor.current_height().unwrap() > height_cm
-                });
+            self.motor_driver.down_until_false_or_timeout(&mut || {
+                match self.sensor.current_height() {
+                    Err(_) => false, // We stop if there is an error in the measurement
+                    Ok(current_height) => current_height > height_cm,
+                }
+            })
         }
         Ok(())
     }
