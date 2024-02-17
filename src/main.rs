@@ -1,3 +1,11 @@
+//! Automates a motorized standing desk so that it can be moved to predefined positions
+//! and calibrated using a distance sensor.
+
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
+#![deny(missing_copy_implementations)]
+#![warn(clippy::doc_markdown)]
+
 mod config;
 mod motor;
 mod movement;

@@ -89,8 +89,8 @@ impl HCSR04 {
             .expect("echo pin be available")
             // Echo should be on low per default
             .into_input_pulldown();
-        // We want to block on both rising and falling signal edges which indicate the start and
-        // end of a measurement respectively.
+        // We want to block on both rising and falling signal edges which indicate the
+        // start and end of a measurement respectively.
         echo_pin
             .set_interrupt(Trigger::Both)
             .expect("must be able to set echo interrupt trigger");
@@ -108,7 +108,8 @@ impl HCSR04 {
         }
     }
 
-    /// Performs multiple echo measurements and takes the average for a less noisy signal.
+    /// Performs multiple echo measurements and takes the average for a less
+    /// noisy signal.
     fn measure_burst_echo_duration(&mut self) -> Result<Duration> {
         self.measurement_buffer.clear();
         for _ in 0..self.measurement_burst {
@@ -122,16 +123,19 @@ impl HCSR04 {
         Ok(average_burst_echo_duration)
     }
 
-    /// Measures the time it takes for the sensor to send and receive an acoustic echo.
+    /// Measures the time it takes for the sensor to send and receive an
+    /// acoustic echo.
     ///
     /// # Errors
     /// Errors if there is no object close enough or the object is too small.
     fn measure_one_full_echo_duration(&mut self) -> Result<Duration> {
         // "Load" the trigger - this does not set off the trigger yet, see below.
         self.trigger_pin.set_high();
-        // Trigger needs to be set to high for at least 10us, let's be certain here with 100us.
+        // Trigger needs to be set to high for at least 10us, let's be certain here with
+        // 100us.
         sleep(Duration::from_micros(100));
-        // A falling signal edge is the actual trigger for the sensor to start the measurement.
+        // A falling signal edge is the actual trigger for the sensor to start the
+        // measurement.
         self.trigger_pin.set_low();
         // Wait for the rising edge indicating the start of the measurement.
         // We expect a delay of around 500us as per the datasheet:
@@ -142,13 +146,14 @@ impl HCSR04 {
         let start_time = SystemTime::now();
         // Let's wait for the falling edge indicating the end of the measurement.
         // No need to reset the interrupt as we've just received the last event.
-        // Timeout is 250ms as the sensor should return to low after 200ms max to indicate an
-        // unsuccessful measurement.
+        // Timeout is 250ms as the sensor should return to low after 200ms max to
+        // indicate an unsuccessful measurement.
         self.echo_pin
             .poll_interrupt(false, Some(Duration::from_millis(250)))?;
         let echo_duration = start_time.elapsed()?;
 
-        // We only check the pin value here to keep the measurement above as clean as possible.
+        // We only check the pin value here to keep the measurement above as clean as
+        // possible.
         match start_echo_level {
             None => return Err(anyhow!("unsuccessful measurement, echo trigger timed out")),
             Some(Level::Low) => {
@@ -168,7 +173,8 @@ impl HCSR04 {
 }
 
 impl DistanceSensor for HCSR04 {
-    /// Computes the sensor's current height, taking the calibration data into account.
+    /// Computes the sensor's current height, taking the calibration data into
+    /// account.
     fn current_height(&mut self) -> Result<Centimeter> {
         let echo_duration = self.measure_burst_echo_duration()?.as_secs_f32();
         // We're interpolating the height from our calibration parameters

@@ -55,6 +55,12 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
     }
 
     fn calibrate(&mut self) -> Result<()> {
+        // We just move the table until we reach a timeout.
+        // The assumption is that the timeout is long enough so that the table
+        // physically moves to its heighest and lowest positions in that timeframe.
+        // We know the highest and lowest positions from the configuration data anc can
+        // calibrate accordingly.
+
         info!("Calibrating");
         self.motor_driver.up_until_false_or_timeout(&mut || true);
         self.sensor.set_max_height(self.config.max_table_height)?;
@@ -67,8 +73,7 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
         fs::write(calibration_file, raw_calibration_data)?;
         debug!("Calibration data written to {calibration_file:?}");
 
-        // self.move_to_sitting()
-        Ok(())
+        self.move_to_sitting()
     }
 
     fn move_to_height(
@@ -80,7 +85,8 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
                 "Cannot move table higher than {:?}",
                 self.config.max_table_height
             ));
-        } else if height_cm < self.config.min_table_height {
+        }
+        if height_cm < self.config.min_table_height {
             return Err(anyhow!(
                 "Cannot move table lower than {:?}",
                 self.config.min_table_height
