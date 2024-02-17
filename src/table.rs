@@ -24,7 +24,7 @@ pub(crate) struct StandingDesk<S: DistanceSensor = HCSR04, M: MotorDriver = Desk
 }
 
 impl StandingDesk {
-    /// Creates a new instance of a standing desk.
+    /// Creates a new instance of a `StandingDesk`.
     pub fn new(
         config: Config,
         shutdown_rx: Receiver<()>,
@@ -55,11 +55,11 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
     }
 
     fn calibrate(&mut self) -> Result<()> {
-        // We just move the table until we reach a timeout.
+        // Move the table until a timeout is reached.
         // The assumption is that the timeout is long enough so that the table
         // physically moves to its heighest and lowest positions in that timeframe.
-        // We know the highest and lowest positions from the configuration data anc can
-        // calibrate accordingly.
+        // The highest and lowest positions are defined in the configuration data, and
+        // are calibrated for accordingly.
 
         info!("Calibrating");
         self.motor_driver.up_until_false_or_timeout(&mut || true);
@@ -94,7 +94,8 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
         }
         info!("Moving to height {height_cm:?}");
         let current_height = self.sensor.current_height()?;
-        // We allow for some tolerance as moving the table is not so precise
+        // Allow for some tolerance as moving the table and the height measurement are
+        // not so precise
         if height_cm - Centimeter(1) <= current_height
             && current_height <= height_cm + Centimeter(1)
         {
@@ -104,7 +105,7 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
         if current_height < height_cm {
             self.motor_driver.up_until_false_or_timeout(&mut || {
                 match self.sensor.current_height() {
-                    Err(_) => false, // We stop if there is an error in the measurement
+                    Err(_) => false, // Stop if there is an error in the measurement
                     Ok(current_height) => current_height < height_cm,
                 }
             });
@@ -112,7 +113,7 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
         if current_height > height_cm {
             self.motor_driver.down_until_false_or_timeout(&mut || {
                 match self.sensor.current_height() {
-                    Err(_) => false, // We stop if there is an error in the measurement
+                    Err(_) => false, // Stop if there is an error in the measurement
                     Ok(current_height) => current_height > height_cm,
                 }
             })

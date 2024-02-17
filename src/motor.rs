@@ -10,8 +10,7 @@ use rppal::gpio::OutputPin;
 
 use crate::config::MotorConfig;
 
-/// A driver for handling the movement of the motor.
-/// Should be used instead of directly talking to the motor.
+/// A driver for handling the movement of the standing desk's motor.
 pub(crate) trait MotorDriver {
     /// Makes the motor move the table up until the provided condition is false
     /// or until the timeoout is reached.
@@ -31,11 +30,13 @@ pub(crate) trait MotorDriver {
 }
 
 // The standard struct for driving the desk motor.
+#[derive(Debug)]
 pub(crate) struct DeskMotorDriver {
     motor: DeskMotor,
-    // The motor should not be (tried) to run for longer than this
+    // The motor should not be (tried) to run for longer than this duration
     timeout: Duration,
-    // A receiver
+    // A receiver for an issued shutdown signal. We need this to gracefully stop the motor and drop
+    // reset the pins correctly.
     shutdown_rx: Receiver<()>,
 }
 
@@ -100,11 +101,14 @@ impl MotorDriver for DeskMotorDriver {
     }
 }
 
+#[derive(Debug)]
+
 enum MoveDirection {
     Up,
     Down,
 }
 
+#[derive(Debug)]
 struct DeskMotor {
     pin_up: OutputPin,
     pin_down: OutputPin,
@@ -112,6 +116,8 @@ struct DeskMotor {
 
 impl DeskMotor {
     /// Creates a new `DeskMotor`.
+    ///
+    /// # Panics
     /// Panics if the configured pins for driving the motor up or down are the
     /// same or if they cannot be initialised.
     fn new(config: MotorConfig) -> Self {

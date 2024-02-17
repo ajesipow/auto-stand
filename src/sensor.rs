@@ -42,15 +42,16 @@ pub(crate) trait DistanceSensor {
 }
 
 /// The HCSR04 sensor for measuring distances.
+#[derive(Debug)]
 pub(crate) struct HCSR04 {
     calibration_file_path: PathBuf,
     calibration_data: SensorCalibrationData,
     trigger_pin: OutputPin,
     echo_pin: InputPin,
-    // We're making several measurements and averaging them to get a less noisy estimate
+    // We take several measurements and average them to get a less noisy estimate
     measurement_buffer: Vec<Duration>,
     // The number of measurements to do in burst for filling measurement buffer.
-    // This is a u8 because it doesn't make sense to make more than 256 measurements in burst
+    // This is a u8 because it doesn't make sense to take more than 256 measurements in burst
     // as that would equal to around 7s of measurement time.
     measurement_burst: u8,
 }
@@ -58,7 +59,7 @@ pub(crate) struct HCSR04 {
 /// A struct for storing the calibration data for the sensor.
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct SensorCalibrationData {
-    // The minimum height we can observe
+    // The minimum height that can be observed
     pub min_height: Centimeter,
     // The duration of the echo in seconds at minimum height
     pub min_height_echo_secs: f32,
@@ -78,7 +79,8 @@ impl SensorCalibrationData {
 }
 
 impl HCSR04 {
-    /// Creates a new [HCSR04] with calibration parameters from the file.
+    /// Creates a new [HCSR04] instance with calibration parameters from the
+    /// file.
     pub(crate) fn new(config: SensorConfig) -> Self {
         let gpio = Gpio::new().expect("gpio to be available");
         let calibration_file_path = config.calibration_file;
@@ -89,7 +91,7 @@ impl HCSR04 {
             .expect("echo pin be available")
             // Echo should be on low per default
             .into_input_pulldown();
-        // We want to block on both rising and falling signal edges which indicate the
+        // Block on both rising and falling signal edges to indicate the
         // start and end of a measurement respectively.
         echo_pin
             .set_interrupt(Trigger::Both)
@@ -131,12 +133,15 @@ impl HCSR04 {
     fn measure_one_full_echo_duration(&mut self) -> Result<Duration> {
         // "Load" the trigger - this does not set off the trigger yet, see below.
         self.trigger_pin.set_high();
+
         // Trigger needs to be set to high for at least 10us, let's be certain here with
         // 100us.
         sleep(Duration::from_micros(100));
+
         // A falling signal edge is the actual trigger for the sensor to start the
         // measurement.
         self.trigger_pin.set_low();
+
         // Wait for the rising edge indicating the start of the measurement.
         // We expect a delay of around 500us as per the datasheet:
         // https://www.mikrocontroller.net/attachment/218122/HC-SR04_ultraschallmodul_beschreibung_3.pdf
@@ -144,6 +149,7 @@ impl HCSR04 {
             .echo_pin
             .poll_interrupt(false, Some(Duration::from_millis(10)))?;
         let start_time = SystemTime::now();
+
         // Let's wait for the falling edge indicating the end of the measurement.
         // No need to reset the interrupt as we've just received the last event.
         // Timeout is 250ms as the sensor should return to low after 200ms max to
@@ -152,7 +158,7 @@ impl HCSR04 {
             .poll_interrupt(false, Some(Duration::from_millis(250)))?;
         let echo_duration = start_time.elapsed()?;
 
-        // We only check the pin value here to keep the measurement above as clean as
+        // Check the pin value here to keep the measurement above as clean as
         // possible.
         match start_echo_level {
             None => return Err(anyhow!("unsuccessful measurement, echo trigger timed out")),
