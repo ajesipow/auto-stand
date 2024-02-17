@@ -1,4 +1,5 @@
 use std::fs;
+use std::sync::mpsc::Receiver;
 
 use anyhow::anyhow;
 use anyhow::Result;
@@ -24,9 +25,12 @@ pub(crate) struct StandingDesk<S: DistanceSensor = HCSR04, M: MotorDriver = Desk
 
 impl StandingDesk {
     /// Creates a new instance of a standing desk.
-    pub fn new(config: Config) -> Self {
+    pub fn new(
+        config: Config,
+        shutdown_rx: Receiver<()>,
+    ) -> Self {
         let sensor = HCSR04::new(config.sensor);
-        let motor_driver = DeskMotorDriver::new(config.motor);
+        let motor_driver = DeskMotorDriver::new(config.motor, shutdown_rx);
         Self {
             config: config.table,
             sensor,

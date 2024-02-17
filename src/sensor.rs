@@ -87,8 +87,8 @@ impl HCSR04 {
             .expect("echo pin be available")
             // Echo should be on low per default
             .into_input_pulldown();
-        // We want to block on both rising and falling signal edges which indicate the start and end
-        // of a measurement respectively.
+        // We want to block on both rising and falling signal edges which indicate the start and
+        // end of a measurement respectively.
         echo_pin
             .set_interrupt(Trigger::Both)
             .expect("must be able to set echo interrupt trigger");

@@ -1,3 +1,5 @@
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::TryRecvError;
 use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
@@ -31,16 +33,26 @@ pub(crate) struct DeskMotorDriver {
     motor: DeskMotor,
     // The motor should not be (tried) to run for longer than this
     timeout: Duration,
+    // A receiver
+    shutdown_rx: Receiver<()>,
 }
 
 impl DeskMotorDriver {
-    /// Creates a new DeskMotorDriver.
+    /// Creates a new DeskMotorDriver with the provided configuration.
+    ///
+    /// The `shutdown_rx` receiver is used for gracefully stopping the motor.
+    ///
+    /// # Panics
     /// Panics if the configured pins for driving the motor up or down are the same or if they
     /// cannot be initialised.
-    pub fn new(config: MotorConfig) -> Self {
+    pub fn new(
+        config: MotorConfig,
+        shutdown_rx: Receiver<()>,
+    ) -> Self {
         Self {
             motor: DeskMotor::new(config),
             timeout: Duration::from_secs(config.timeout_secs),
+            shutdown_rx,
         }
     }
 
@@ -56,7 +68,10 @@ impl DeskMotorDriver {
             MoveDirection::Up => self.motor.up(),
             MoveDirection::Down => self.motor.down(),
         }
-        while condition() && now.elapsed() < self.timeout {
+        while condition()
+            && now.elapsed() < self.timeout
+            && matches!(self.shutdown_rx.try_recv(), Err(TryRecvError::Empty))
+        {
             sleep(Duration::from_millis(250));
         }
         self.motor.stop();
