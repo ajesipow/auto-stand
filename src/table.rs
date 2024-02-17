@@ -1,6 +1,4 @@
 use std::fs;
-use std::thread::sleep;
-use std::time::{Duration, Instant};
 
 use anyhow::anyhow;
 use anyhow::Result;
@@ -9,8 +7,8 @@ use log::info;
 
 use crate::config::Config;
 use crate::config::TableConfig;
-use crate::motor::DeskMotor;
-use crate::motor::Motor;
+use crate::motor::DeskMotorDriver;
+use crate::motor::MotorDriver;
 use crate::movement::Movement;
 use crate::primitives::Centimeter;
 use crate::sensor::DistanceSensor;
@@ -18,21 +16,21 @@ use crate::sensor::HCSR04;
 
 /// The standing desk implementation.
 #[derive(Debug)]
-pub(crate) struct StandingDesk<S: DistanceSensor = HCSR04, M: Motor = DeskMotor> {
+pub(crate) struct StandingDesk<S: DistanceSensor = HCSR04, M: MotorDriver = DeskMotorDriver> {
     config: TableConfig,
     sensor: S,
-    motor: M,
+    motor_driver: M,
 }
 
 impl StandingDesk {
     /// Creates a new instance of a standing desk.
     pub fn new(config: Config) -> Self {
         let sensor = HCSR04::new(config.sensor);
-        let motor = DeskMotor::new(config.motor);
+        let motor_driver = DeskMotorDriver::new(config.motor);
         Self {
             config: config.table,
             sensor,
-            motor,
+            motor_driver,
         }
     }
 
@@ -41,7 +39,7 @@ impl StandingDesk {
     }
 }
 
-impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
+impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
     fn move_to_standing(&mut self) -> Result<()> {
         info!("Moving to standing position ...");
         self.move_to_height(self.config.standing_height)
@@ -54,13 +52,10 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
 
     fn calibrate(&mut self) -> Result<()> {
         info!("Calibrating");
-        self.motor.up();
-        sleep(Duration::from_secs(20));
+        self.motor_driver.up_with_timeout(&mut || true);
         self.sensor.set_max_height(self.config.max_table_height)?;
 
-        self.motor.down();
-        sleep(Duration::from_secs(20));
-        self.motor.stop();
+        self.motor_driver.down_with_timeout(&mut || true);
         self.sensor.set_min_height(self.config.min_table_height)?;
 
         let calibration_file = self.sensor.calibration_file();
@@ -96,22 +91,15 @@ impl<S: DistanceSensor, M: Motor> Movement for StandingDesk<S, M> {
             debug!("Table already at desired height");
             return Ok(());
         }
-        let move_timeout = Duration::from_secs(20);
         if current_height < height_cm {
-            let now = Instant::now();
-            self.motor.up();
-            while self.sensor.current_height()? < height_cm && now.elapsed() < move_timeout {
-                sleep(Duration::from_millis(250));
-            }
-            self.motor.stop();
+            self.motor_driver
+                // FIXME do not use unwrap
+                .up_with_timeout(&mut || self.sensor.current_height().unwrap() < height_cm);
         }
         if current_height > height_cm {
-            let now = Instant::now();
-            self.motor.down();
-            while self.sensor.current_height()? > height_cm && now.elapsed() < move_timeout {
-                sleep(Duration::from_millis(250));
-            }
-            self.motor.stop();
+            self.motor_driver
+                // FIXME do not use unwrap
+                .down_with_timeout(&mut || self.sensor.current_height().unwrap() > height_cm);
         }
         Ok(())
     }

@@ -7,6 +7,7 @@ standing_height = 119
 [motor]
 up_pin = 18
 down_pin = 17
+timeout_secs = 30
 
 [sensor]
 trigger_pin = 4
