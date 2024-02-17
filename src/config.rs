@@ -36,12 +36,14 @@ pub(crate) struct SensorConfig {
 }
 
 /// Configuration data for the standing desk motor.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Copy)]
 pub(crate) struct MotorConfig {
     // The pin number controlling the motor's upwards movement
     pub up_pin: u8,
     // The pin number controlling the motor's downwards movement
     pub down_pin: u8,
+    // The maximimum time in seconds the motor should be allowed to run at a time
+    pub timeout_secs: u64,
 }
 
 impl Config {
