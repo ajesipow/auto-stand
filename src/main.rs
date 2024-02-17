@@ -6,6 +6,7 @@ mod sensor;
 mod table;
 
 use std::path::PathBuf;
+use std::sync::mpsc::channel;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -13,6 +14,7 @@ use clap::Parser;
 use clap::Subcommand;
 use env_logger::Builder;
 use log::LevelFilter;
+use simple_signal::Signal;
 
 use crate::config::Config;
 use crate::movement::Movement;
@@ -49,18 +51,26 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
     let config = Config::load(cli.config).expect("be able to load configuration");
-    let mut table = StandingDesk::new(config);
+    let (shutdown_tx, shutdown_rx) = channel::<()>();
 
     let mut builder = Builder::new();
 
     let builder = match cli.debug {
         0 => builder.filter_level(LevelFilter::Error),
-        1 => builder.filter_level(LevelFilter::Warn),
-        2 => builder.filter_level(LevelFilter::Info),
-        _ => builder.filter_level(LevelFilter::Debug),
+        1 => builder.filter_level(LevelFilter::Warn), // -c
+        2 => builder.filter_level(LevelFilter::Info), // -cc
+        _ => builder.filter_level(LevelFilter::Debug), // -ccc
     };
     builder.init();
 
+    simple_signal::set_handler(&[Signal::Int, Signal::Term], move |_| {
+        println!("Shutting down");
+        shutdown_tx
+            .send(())
+            .expect("be able to send a shutdown signal")
+    });
+
+    let mut table = StandingDesk::new(config, shutdown_rx);
     match cli.command {
         Commands::Calibrate => {
             table.calibrate().expect("calibration to work");
@@ -85,11 +95,11 @@ fn main() {
             println!("Testing distance sensor");
             let mut i = 0;
             while i < 50 {
-                sleep(Duration::from_millis(200));
+                sleep(Duration::from_millis(100));
                 let current_height = table.get_measurement().unwrap().0;
                 println!("current distance: {current_height:?}");
                 i += 1;
             }
         }
-    }
+    };
 }

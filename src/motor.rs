@@ -1,3 +1,5 @@
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::TryRecvError;
 use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
@@ -11,15 +13,15 @@ use crate::config::MotorConfig;
 /// A driver for handling the movement of the motor.
 /// Should be used instead of directly talking to the motor.
 pub(crate) trait MotorDriver {
-    /// Makes the motor move the table up until the provided condition is true.
-    fn up_with_timeout<F>(
+    /// Makes the motor move the table up until the provided condition is false or until the timeoout is reached.
+    fn up_until_false_or_timeout<F>(
         &mut self,
         condition: &mut F,
     ) where
         F: FnMut() -> bool;
 
-    /// Makes the motor move the table up until the provided condition is true.
-    fn down_with_timeout<F>(
+    /// Makes the motor move the table up until the provided condition is false or until the timeoout is reached.
+    fn down_until_false_or_timeout<F>(
         &mut self,
         condition: &mut F,
     ) where
@@ -31,20 +33,30 @@ pub(crate) struct DeskMotorDriver {
     motor: DeskMotor,
     // The motor should not be (tried) to run for longer than this
     timeout: Duration,
+    // A receiver
+    shutdown_rx: Receiver<()>,
 }
 
 impl DeskMotorDriver {
-    /// Creates a new DeskMotorDriver.
+    /// Creates a new DeskMotorDriver with the provided configuration.
+    ///
+    /// The `shutdown_rx` receiver is used for gracefully stopping the motor.
+    ///
+    /// # Panics
     /// Panics if the configured pins for driving the motor up or down are the same or if they
     /// cannot be initialised.
-    pub fn new(config: MotorConfig) -> Self {
+    pub fn new(
+        config: MotorConfig,
+        shutdown_rx: Receiver<()>,
+    ) -> Self {
         Self {
             motor: DeskMotor::new(config),
             timeout: Duration::from_secs(config.timeout_secs),
+            shutdown_rx,
         }
     }
 
-    fn drive_motor_conditionally_with_timeout<C>(
+    fn move_until_false_or_timeout<C>(
         &mut self,
         direction: MoveDirection,
         condition: &mut C,
@@ -56,30 +68,33 @@ impl DeskMotorDriver {
             MoveDirection::Up => self.motor.up(),
             MoveDirection::Down => self.motor.down(),
         }
-        while condition() && now.elapsed() < self.timeout {
-            sleep(Duration::from_millis(250));
+        while condition()
+            && now.elapsed() < self.timeout
+            && matches!(self.shutdown_rx.try_recv(), Err(TryRecvError::Empty))
+        {
+            sleep(Duration::from_millis(50));
         }
         self.motor.stop();
     }
 }
 
 impl MotorDriver for DeskMotorDriver {
-    fn up_with_timeout<C>(
+    fn up_until_false_or_timeout<C>(
         &mut self,
         condition: &mut C,
     ) where
         C: FnMut() -> bool,
     {
-        self.drive_motor_conditionally_with_timeout(MoveDirection::Up, condition);
+        self.move_until_false_or_timeout(MoveDirection::Up, condition);
     }
 
-    fn down_with_timeout<C>(
+    fn down_until_false_or_timeout<C>(
         &mut self,
         condition: &mut C,
     ) where
         C: FnMut() -> bool,
     {
-        self.drive_motor_conditionally_with_timeout(MoveDirection::Down, condition);
+        self.move_until_false_or_timeout(MoveDirection::Down, condition);
     }
 }
 
