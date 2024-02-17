@@ -19,6 +19,7 @@ use serde::Serialize;
 use crate::config::SensorConfig;
 use crate::primitives::Centimeter;
 
+/// The abstraction of a distance sensor.
 pub(crate) trait DistanceSensor {
     /// Takes a height measurement in centimeters.
     fn current_height(&mut self) -> Result<Centimeter>;
@@ -54,6 +55,7 @@ pub(crate) struct HCSR04 {
     measurement_burst: u8,
 }
 
+/// A struct for storing the calibration data for the sensor.
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct SensorCalibrationData {
     // The minimum height we can observe
@@ -121,6 +123,7 @@ impl HCSR04 {
     }
 
     /// Measures the time it takes for the sensor to send and receive an acoustic echo.
+    ///
     /// # Errors
     /// Errors if there is no object close enough or the object is too small.
     fn measure_one_full_echo_duration(&mut self) -> Result<Duration> {
@@ -165,6 +168,7 @@ impl HCSR04 {
 }
 
 impl DistanceSensor for HCSR04 {
+    /// Computes the sensor's current height, taking the calibration data into account.
     fn current_height(&mut self) -> Result<Centimeter> {
         let echo_duration = self.measure_burst_echo_duration()?.as_secs_f32();
         // We're interpolating the height from our calibration parameters
@@ -181,6 +185,7 @@ impl DistanceSensor for HCSR04 {
         Ok(height)
     }
 
+    /// Sets the minimum height in the calibration data.
     fn set_min_height(
         &mut self,
         height: Centimeter,
@@ -193,6 +198,7 @@ impl DistanceSensor for HCSR04 {
         Ok(())
     }
 
+    /// Sets the maximum height in the calibration data.
     fn set_max_height(
         &mut self,
         height: Centimeter,

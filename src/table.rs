@@ -56,10 +56,10 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
 
     fn calibrate(&mut self) -> Result<()> {
         info!("Calibrating");
-        self.motor_driver.up_until_or_timeout(&mut || true);
+        self.motor_driver.up_until_false_or_timeout(&mut || true);
         self.sensor.set_max_height(self.config.max_table_height)?;
 
-        self.motor_driver.down_until_or_timeout(&mut || true);
+        self.motor_driver.down_until_false_or_timeout(&mut || true);
         self.sensor.set_min_height(self.config.min_table_height)?;
 
         let calibration_file = self.sensor.calibration_file();
@@ -98,12 +98,16 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
         if current_height < height_cm {
             self.motor_driver
                 // FIXME do not use unwrap
-                .up_until_or_timeout(&mut || self.sensor.current_height().unwrap() < height_cm);
+                .up_until_false_or_timeout(&mut || {
+                    self.sensor.current_height().unwrap() < height_cm
+                });
         }
         if current_height > height_cm {
             self.motor_driver
                 // FIXME do not use unwrap
-                .down_until_or_timeout(&mut || self.sensor.current_height().unwrap() > height_cm);
+                .down_until_false_or_timeout(&mut || {
+                    self.sensor.current_height().unwrap() > height_cm
+                });
         }
         Ok(())
     }

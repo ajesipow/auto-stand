@@ -13,15 +13,15 @@ use crate::config::MotorConfig;
 /// A driver for handling the movement of the motor.
 /// Should be used instead of directly talking to the motor.
 pub(crate) trait MotorDriver {
-    /// Makes the motor move the table up until the provided condition is trueor until the timeoout is reached.
-    fn up_until_or_timeout<F>(
+    /// Makes the motor move the table up until the provided condition is false or until the timeoout is reached.
+    fn up_until_false_or_timeout<F>(
         &mut self,
         condition: &mut F,
     ) where
         F: FnMut() -> bool;
 
-    /// Makes the motor move the table up until the provided condition is true or until the timeoout is reached.
-    fn down_until_or_timeout<F>(
+    /// Makes the motor move the table up until the provided condition is false or until the timeoout is reached.
+    fn down_until_false_or_timeout<F>(
         &mut self,
         condition: &mut F,
     ) where
@@ -56,7 +56,7 @@ impl DeskMotorDriver {
         }
     }
 
-    fn move_until_or_timeout<C>(
+    fn move_until_false_or_timeout<C>(
         &mut self,
         direction: MoveDirection,
         condition: &mut C,
@@ -72,29 +72,29 @@ impl DeskMotorDriver {
             && now.elapsed() < self.timeout
             && matches!(self.shutdown_rx.try_recv(), Err(TryRecvError::Empty))
         {
-            sleep(Duration::from_millis(250));
+            sleep(Duration::from_millis(50));
         }
         self.motor.stop();
     }
 }
 
 impl MotorDriver for DeskMotorDriver {
-    fn up_until_or_timeout<C>(
+    fn up_until_false_or_timeout<C>(
         &mut self,
         condition: &mut C,
     ) where
         C: FnMut() -> bool,
     {
-        self.move_until_or_timeout(MoveDirection::Up, condition);
+        self.move_until_false_or_timeout(MoveDirection::Up, condition);
     }
 
-    fn down_until_or_timeout<C>(
+    fn down_until_false_or_timeout<C>(
         &mut self,
         condition: &mut C,
     ) where
         C: FnMut() -> bool,
     {
-        self.move_until_or_timeout(MoveDirection::Down, condition);
+        self.move_until_false_or_timeout(MoveDirection::Down, condition);
     }
 }
 

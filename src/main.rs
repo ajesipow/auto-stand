@@ -57,9 +57,9 @@ fn main() {
 
     let builder = match cli.debug {
         0 => builder.filter_level(LevelFilter::Error),
-        1 => builder.filter_level(LevelFilter::Warn),
-        2 => builder.filter_level(LevelFilter::Info),
-        _ => builder.filter_level(LevelFilter::Debug),
+        1 => builder.filter_level(LevelFilter::Warn), // -c
+        2 => builder.filter_level(LevelFilter::Info), // -cc
+        _ => builder.filter_level(LevelFilter::Debug), // -ccc
     };
     builder.init();
 
@@ -95,7 +95,7 @@ fn main() {
             println!("Testing distance sensor");
             let mut i = 0;
             while i < 50 {
-                sleep(Duration::from_millis(200));
+                sleep(Duration::from_millis(100));
                 let current_height = table.get_measurement().unwrap().0;
                 println!("current distance: {current_height:?}");
                 i += 1;
