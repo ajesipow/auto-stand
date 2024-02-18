@@ -1,6 +1,7 @@
 #!/usr/bin/env just --justfile
 # Formats and checks the code
 all: format check
+ci: _add-target format check
 
 [private]
 alias a := all
@@ -8,6 +9,10 @@ alias a := all
 alias c := check
 [private]
 alias f := format
+
+# Adds the target for CI
+_add-target:
+	rustup target add aarch64-unknown-linux-gnu
 
 # Run clippy and formatter
 check: _c-clippy _c-fmt
