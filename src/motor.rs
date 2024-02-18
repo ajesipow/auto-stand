@@ -10,17 +10,18 @@ use rppal::gpio::OutputPin;
 
 use crate::config::MotorConfig;
 
-/// A driver for handling the movement of the motor.
-/// Should be used instead of directly talking to the motor.
+/// A driver for handling the movement of the standing desk's motor.
 pub(crate) trait MotorDriver {
-    /// Makes the motor move the table up until the provided condition is false or until the timeoout is reached.
+    /// Makes the motor move the table up until the provided condition is false
+    /// or until the timeoout is reached.
     fn up_until_false_or_timeout<F>(
         &mut self,
         condition: &mut F,
     ) where
         F: FnMut() -> bool;
 
-    /// Makes the motor move the table up until the provided condition is false or until the timeoout is reached.
+    /// Makes the motor move the table up until the provided condition is false
+    /// or until the timeoout is reached.
     fn down_until_false_or_timeout<F>(
         &mut self,
         condition: &mut F,
@@ -29,22 +30,24 @@ pub(crate) trait MotorDriver {
 }
 
 // The standard struct for driving the desk motor.
+#[derive(Debug)]
 pub(crate) struct DeskMotorDriver {
     motor: DeskMotor,
-    // The motor should not be (tried) to run for longer than this
+    // The motor should not be (tried) to run for longer than this duration
     timeout: Duration,
-    // A receiver
+    // A receiver for an issued shutdown signal. We need this to gracefully stop the motor and drop
+    // reset the pins correctly.
     shutdown_rx: Receiver<()>,
 }
 
 impl DeskMotorDriver {
-    /// Creates a new DeskMotorDriver with the provided configuration.
+    /// Creates a new `DeskMotorDriver` with the provided configuration.
     ///
     /// The `shutdown_rx` receiver is used for gracefully stopping the motor.
     ///
     /// # Panics
-    /// Panics if the configured pins for driving the motor up or down are the same or if they
-    /// cannot be initialised.
+    /// Panics if the configured pins for driving the motor up or down are the
+    /// same or if they cannot be initialised.
     pub fn new(
         config: MotorConfig,
         shutdown_rx: Receiver<()>,
@@ -98,20 +101,25 @@ impl MotorDriver for DeskMotorDriver {
     }
 }
 
+#[derive(Debug)]
+
 enum MoveDirection {
     Up,
     Down,
 }
 
+#[derive(Debug)]
 struct DeskMotor {
     pin_up: OutputPin,
     pin_down: OutputPin,
 }
 
 impl DeskMotor {
-    /// Creates a new DeskMotor.
-    /// Panics if the configured pins for driving the motor up or down are the same or if they
-    /// cannot be initialised.
+    /// Creates a new `DeskMotor`.
+    ///
+    /// # Panics
+    /// Panics if the configured pins for driving the motor up or down are the
+    /// same or if they cannot be initialised.
     fn new(config: MotorConfig) -> Self {
         let gpio = Gpio::new().expect("gpio to be available");
         let pin_up = gpio

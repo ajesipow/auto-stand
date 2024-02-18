@@ -18,10 +18,10 @@ pub(crate) struct Config {
 /// Configuration data for the standing desk.
 #[derive(Debug, Deserialize)]
 pub(crate) struct TableConfig {
-    pub max_table_height: Centimeter,
-    pub min_table_height: Centimeter,
-    pub sitting_height: Centimeter,
-    pub standing_height: Centimeter,
+    pub max_table_height_cm: Centimeter,
+    pub min_table_height_cm: Centimeter,
+    pub sitting_height_cm: Centimeter,
+    pub standing_height_cm: Centimeter,
 }
 
 /// Configuration data for the distance sensor.
