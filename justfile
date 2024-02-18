@@ -11,7 +11,8 @@ alias c := check
 alias f := format
 
 # Adds the target for CI
-_add-target: rustup target add aarch64-unknown-linux-gnu
+_add-target:
+	rustup target add aarch64-unknown-linux-gnu
 
 # Run clippy and formatter
 check: _c-clippy _c-fmt
