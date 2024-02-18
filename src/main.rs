@@ -21,6 +21,7 @@ use std::time::Duration;
 use clap::Parser;
 use clap::Subcommand;
 use env_logger::Builder;
+use log::info;
 use log::LevelFilter;
 use simple_signal::Signal;
 
@@ -47,8 +48,8 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Calibrate,
-    Sitting,
-    Standing,
+    Sit,
+    Stand,
     #[command(arg_required_else_help = true)]
     MoveTo {
         height: u8,
@@ -83,29 +84,28 @@ fn main() {
         Commands::Calibrate => {
             table.calibrate().expect("calibration to work");
         }
-        Commands::Sitting => {
+        Commands::Sit => {
             table
                 .move_to_sitting()
                 .expect("moving to sitting position to work");
         }
-        Commands::Standing => {
+        Commands::Stand => {
             table
                 .move_to_standing()
                 .expect("moving to standing position to work");
         }
         Commands::MoveTo { height } => {
-            println!("Moving to height {:?} ...", height);
             table
                 .move_to_height(Centimeter(height))
                 .expect("moving to height to work");
         }
         Commands::TestSensor => {
-            println!("Testing distance sensor");
+            info!("Testing distance sensor for about 5s");
             let mut i = 0;
             while i < 50 {
                 sleep(Duration::from_millis(100));
                 let current_height = table.get_measurement().unwrap().0;
-                println!("current distance: {current_height:?}");
+                info!("Height: {current_height:?}");
                 i += 1;
             }
         }

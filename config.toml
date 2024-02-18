@@ -1,8 +1,8 @@
 [table]
-max_table_height = 126
-min_table_height = 65
-sitting_height = 78
-standing_height = 119
+max_table_height_cm = 126
+min_table_height_cm = 65
+sitting_height_cm = 78
+standing_height_cm = 119
 
 [motor]
 up_pin = 18

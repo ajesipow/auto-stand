@@ -46,12 +46,12 @@ impl StandingDesk {
 impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
     fn move_to_standing(&mut self) -> Result<()> {
         info!("Moving to standing position ...");
-        self.move_to_height(self.config.standing_height)
+        self.move_to_height(self.config.standing_height_cm)
     }
 
     fn move_to_sitting(&mut self) -> Result<()> {
         info!("Moving to standing position ...");
-        self.move_to_height(self.config.sitting_height)
+        self.move_to_height(self.config.sitting_height_cm)
     }
 
     fn calibrate(&mut self) -> Result<()> {
@@ -63,10 +63,12 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
 
         info!("Calibrating");
         self.motor_driver.up_until_false_or_timeout(&mut || true);
-        self.sensor.set_max_height(self.config.max_table_height)?;
+        self.sensor
+            .set_max_height(self.config.max_table_height_cm)?;
 
         self.motor_driver.down_until_false_or_timeout(&mut || true);
-        self.sensor.set_min_height(self.config.min_table_height)?;
+        self.sensor
+            .set_min_height(self.config.min_table_height_cm)?;
 
         let calibration_file = self.sensor.calibration_file();
         let raw_calibration_data = toml::to_string(&self.sensor.calibration_data())?;
@@ -80,16 +82,17 @@ impl<S: DistanceSensor, M: MotorDriver> Movement for StandingDesk<S, M> {
         &mut self,
         height_cm: Centimeter,
     ) -> Result<()> {
-        if height_cm > self.config.max_table_height {
+        info!("Moving to height {:?} ...", height_cm);
+        if height_cm > self.config.max_table_height_cm {
             return Err(anyhow!(
                 "Cannot move table higher than {:?}",
-                self.config.max_table_height
+                self.config.max_table_height_cm
             ));
         }
-        if height_cm < self.config.min_table_height {
+        if height_cm < self.config.min_table_height_cm {
             return Err(anyhow!(
                 "Cannot move table lower than {:?}",
-                self.config.min_table_height
+                self.config.min_table_height_cm
             ));
         }
         info!("Moving to height {height_cm:?}");
