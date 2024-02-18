@@ -1,0 +1,17 @@
+name: General checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  check_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: taiki-e/install-action@just
+    - uses: actions/checkout@v3
+
+    - name: Just all
+      run: just all
