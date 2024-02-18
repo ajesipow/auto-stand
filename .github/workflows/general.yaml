@@ -13,5 +13,5 @@ jobs:
     - uses: taiki-e/install-action@just
     - uses: actions/checkout@v3
 
-    - name: Just all
-      run: just all
+    - name: Just CI
+      run: just ci
